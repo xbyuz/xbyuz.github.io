@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ronda dos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: "Audiowide", sans-serif;
+            color: white;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(4, 200px);
+            grid-template-rows: repeat(3, 200px);
+            gap: 10px;
+            perspective: 1000px;
+        }
+        .card {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+        .card.flip {
+            transform: rotateY(180deg);
+        }
+        .card .front, .card .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background-size: cover;
+        }
+        .card .front {
+            transform: rotateY(180deg);
+        }
+        .next-game {
+            display: none;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #252065;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            border-radius: 8px;
+            font-family: "Audiowide", sans-serif;
+        }
+        .congrats-message {
+            display: none;
+            font-size: 24px;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starsCanvas"></canvas>
+    <h1>ENCUENTRA LAS PAREJAS</h1>
+    <div class="game-container"></div>
+    <p class="congrats-message" id="congratsMessage">¡Felicidades! Has encontrado todas las parejas.</p>
+    <button class="next-game" id="nextGameBtn">SIGUIENTE JUEGO</button>
+    <script>
+        const canvas = document.getElementById("starsCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let stars = [];
+        for (let i = 0; i < 100; i++) {
+            stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, radius: Math.random() * 2, speed: Math.random() * 0.5 + 0.2 });
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+                star.y += star.speed;
+                if (star.y > canvas.height) star.y = 0;
+            });
+            requestAnimationFrame(drawStars);
+        }
+        drawStars();
+
+        const images = [
+            "1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg",
+            "1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg"
+        ];
+        images.sort(() => 0.5 - Math.random());
+        const backImage = "7.jpg";
+
+        const gameContainer = document.querySelector(".game-container");
+        let firstCard, secondCard;
+        let lockBoard = false;
+        let matches = 0;
+        
+        function createCard(image) {
+            const card = document.createElement("div");
+            card.classList.add("card");
+            card.innerHTML = `
+                <div class="front" style="background-image: url('${image}')"></div>
+                <div class="back" style="background-image: url('${backImage}')"></div>
+            `;
+            card.addEventListener("click", flipCard);
+            gameContainer.appendChild(card);
+        }
+
+        images.forEach(image => createCard(image));
+
+        function flipCard() {
+            if (lockBoard || this === firstCard) return;
+            let flipSound = new Audio("hoja.mp3");
+            flipSound.play();
+            this.classList.add("flip");
+
+            if (!firstCard) {
+                firstCard = this;
+                return;
+            }
+
+            secondCard = this;
+            checkMatch();
+        }
+
+        function checkMatch() {
+            lockBoard = true;
+            if (firstCard.innerHTML === secondCard.innerHTML) {
+                let matchSound = new Audio("bien.mp3");
+                matchSound.play();
+                resetBoard();
+                matches++;
+                if (matches === 6) endGame();
+            } else {
+                setTimeout(() => {
+                    let wrongSound = new Audio("mal.mp3");
+                    wrongSound.play();
+                    firstCard.classList.remove("flip");
+                    secondCard.classList.remove("flip");
+                    resetBoard();
+                }, 1000);
+            }
+        }
+
+        function resetBoard() {
+            [firstCard, secondCard, lockBoard] = [null, null, false];
+        }
+
+        function endGame() {
+            setTimeout(() => {
+                document.querySelector(".game-container").style.display = "none";
+                document.getElementById("congratsMessage").style.display = "block";
+                document.getElementById("nextGameBtn").style.display = "block";
+            }, 1000);
+        }
+
+        document.getElementById("nextGameBtn").addEventListener("click", () => {
+    window.location.href = "Ronda tres.html"; // Cambia "juego2.html" al nombre del siguiente juego.
+    });
+
+    </script>
+</body>
+</html>
+

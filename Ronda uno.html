@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Secuencias</title>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: "Audiowide", sans-serif;
+            color: white;
+            background-color: black;
+            position: relative;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1; /* Fondo detrás de todo */
+        }
+
+        h1 {
+            position: absolute;
+            top: 20px;
+            font-size: 2rem;
+            z-index: 1;
+            text-align: center;
+            width: 100%;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            position: relative;
+            z-index: 1; /* Asegura que la cuadrícula esté por encima del fondo */
+            justify-items: center; /* Centra las celdas dentro de la cuadrícula */
+            align-items: center; /* Alinea las celdas verticalmente */
+            visibility: hidden; /* Esconde la cuadrícula hasta que inicie el juego */
+        }
+
+        .huella {
+            width: 100px;
+            height: 100px;
+            background-image: url("huella.png"); /* 🐾 Pon aquí tu imagen */
+            background-size: cover;
+            transition: 0.3s;
+        }
+
+        .iluminada {
+            filter: drop-shadow(0 0 15px gold); /* ✨ Efecto de brillo */
+        }
+
+        .mensaje {
+            margin-top: 20px;
+            font-size: 18px;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .button {
+            background-color: #252065;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            border-radius: 8px;
+            transition: 0.3s;
+            font-family: "Audiowide", sans-serif;
+        }
+
+        .contador {
+            margin-top: 10px;
+            font-size: 24px;
+            z-index: 1;
+        }
+
+        #siguienteJuegoBtn {
+            display: none; /* Lo mantenemos oculto hasta que termine el juego */
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="starsCanvas"></canvas> <!-- Canvas para las estrellas de fondo -->
+    
+    <h1>MEMORIZA LA SECUENCIA</h1>
+    <button class="button" id="iniciarBtn">INICIAR JUEGO</button>
+    <div class="contador" id="contadorRondas">Ronda: 1</div>
+    <div class="grid"></div>
+    <p class="mensaje"></p>
+    <button class="button" id="siguienteJuegoBtn" onclick="irAlSiguienteJuego()">SIGUIENTE JUEGO</button>
+
+    <script>
+        // Estrellas de fondo
+        const canvas = document.getElementById("starsCanvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let stars = [];
+
+        function createStars() {
+            for (let i = 0; i < 100; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.2
+                });
+            }
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+                star.y += star.speed;
+                if (star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(drawStars);
+        }
+
+        createStars();
+        drawStars();
+
+        // Lógica del juego
+        const grid = document.querySelector(".grid");
+        const mensaje = document.querySelector(".mensaje");
+        const contadorRondas = document.getElementById("contadorRondas");
+        const iniciarBtn = document.getElementById("iniciarBtn");
+        const siguienteJuegoBtn = document.getElementById("siguienteJuegoBtn");
+
+        let secuencia = [];
+        let ronda = 1;
+        let jugadorSecuencia = [];
+        let puedeJugar = false;
+
+        // Crear la cuadrícula
+        for (let i = 0; i < 9; i++) {
+            const div = document.createElement("div");
+            div.classList.add("huella");
+            div.dataset.index = i;
+            div.addEventListener("click", manejarClick);
+            grid.appendChild(div);
+        }
+
+        const huellas = document.querySelectorAll(".huella");
+
+        function nuevaSecuencia() {
+            secuencia = [];
+            for (let i = 0; i < 3 + ronda; i++) { // Aumenta la dificultad
+                secuencia.push(Math.floor(Math.random() * 9));
+            }
+            mostrarSecuencia();
+        }
+
+        function mostrarSecuencia() {
+            puedeJugar = false;
+            jugadorSecuencia = [];
+            let i = 0;
+
+            function iluminar() {
+                if (i < secuencia.length) {
+                    let indice = secuencia[i];
+                    huellas[indice].classList.add("iluminada");
+
+                    let sonido = new Audio("sonido.mp3");
+                    sonido.play();
+
+                    setTimeout(() => {
+                        huellas[indice].classList.remove("iluminada");
+                        i++;
+                        setTimeout(iluminar, 500 - ronda * 100); // Más rápido en cada ronda
+                    }, 600);
+                } else {
+                    puedeJugar = true;
+                }
+            }
+            iluminar();
+        }
+
+        function manejarClick(event) {
+            if (!puedeJugar) return;
+
+            const indice = Number(event.target.dataset.index);
+            jugadorSecuencia.push(indice);
+
+            let sonidoClic = new Audio("sonido 2.mp3");
+            sonidoClic.play();
+
+            if (jugadorSecuencia[jugadorSecuencia.length - 1] !== secuencia[jugadorSecuencia.length - 1]) {
+                mensaje.textContent = "¡Fallaste! Inténtalo de nuevo.";
+                setTimeout(() => {
+                    ronda = 1;
+                    mensaje.textContent = "";
+                    contadorRondas.textContent = `Ronda: ${ronda}`;
+                    nuevaSecuencia();
+                }, 2000);
+                return;
+            }
+
+            if (jugadorSecuencia.length === secuencia.length) {
+                mensaje.textContent = `¡Bien hecho! Ronda ${ronda} completada.`;
+                setTimeout(() => {
+                    ronda++;
+                    mensaje.textContent = "";
+                    contadorRondas.textContent = `Ronda: ${ronda}`;
+                    if (ronda > 3) {
+                        // Final del juego
+                        grid.style.visibility = "hidden";
+                        contadorRondas.style.display = "none";
+                        siguienteJuegoBtn.style.display = "block";
+                        mensaje.textContent = "¡Has completado todas las rondas! Pasarás a la siguiente misión.";
+                    } else {
+                        nuevaSecuencia();
+                    }
+                }, 2000);
+            }
+        }
+
+        // Función para iniciar el juego
+        function iniciarJuego() {
+            grid.style.visibility = 'visible'; // Muestra la cuadrícula
+            iniciarBtn.style.display = 'none'; // Oculta el botón de iniciar
+            contadorRondas.style.display = 'block'; // Muestra el contador
+            nuevaSecuencia(); // Comienza la primera secuencia
+        }
+
+        // Añadir el evento de clic al botón de inicio
+        iniciarBtn.addEventListener("click", iniciarJuego);
+
+        function irAlSiguienteJuego() {
+            // Aquí se iría al siguiente juego
+            window.location.href = "Ronda dos.html"; // Descomentar para redirigir
+        }
+
+        
+    </script>
+
+</body>
+</html>
+
+

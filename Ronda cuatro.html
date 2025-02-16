@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laberinto</title>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+         /* Fondo espacial */
+         body {
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            background-color: #000000; /* fondo oscuro */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Audiowide", sans-serif;
+            position: relative;
+        }
+
+        /* Estrellas que brillan */
+        .estrella {
+            position: absolute;
+            border-radius: 50%;
+            background-color: white;
+            animation: brillar 2s infinite;
+        }
+
+        /* Animación de brillo */
+        @keyframes brillar {
+            0% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Movimiento de estrellas */
+        @keyframes moverEstrella {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(-100vh);
+            }
+        }
+
+        /* Creación de estrellas aleatorias */
+        .estrella {
+            width: 3px;
+            height: 3px;
+            animation: moverEstrella 10s infinite linear;
+        }
+
+        /* Laberinto */
+        #maze {
+            display: grid;
+            grid-template-columns: repeat(18, 40px);
+            grid-template-rows: repeat(18, 40px);
+            position: absolute;
+            top: 50%; /* Centra verticalmente */
+    left: 50%; /* Centra horizontalmente */
+    transform: translate(-50%, -50%); /* Ajuste final para centrar correctamente */
+            
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-color: #232323;
+            border: 1px solid #000;
+        }
+
+        .wall {
+            background-color: #151414;
+        }
+
+        .player {
+            width: 40px;
+            height: 40px;
+            background-image: url('cat.png'); /* Cambia esto por la ruta correcta de tu imagen */
+            background-size: cover;
+        }
+
+        .exit {
+            width: 40px;
+            height: 40px;
+            background-image: url('cata.png'); /* Cambia esto por la ruta correcta de tu imagen */
+            background-size: cover;
+        }
+
+        #win-message-container {
+    position: absolute;
+    top: 50%; /* Centra verticalmente */
+    left: 50%; /* Centra horizontalmente */
+    transform: translate(-50%, -50%); /* Ajuste final para asegurar que el texto quede bien centrado */
+    font-size: 24px;
+    color: #ffffff;
+    display: none; /* Oculto por defecto */
+    font-family: "Audiowide", sans-serif;
+    text-align: center;
+}
+.container {
+    margin-top: 20px;
+    font-family: "Audiowide", sans-serif;
+}
+
+.button {
+            background-color: #252065;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            border-radius: 8px;
+            transition: 0.3s;
+            font-family: "Audiowide", sans-serif;
+        }
+
+        
+     
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    <div id="maze"></div>
+    <div id="win-message">¡Felicidades, has ganado!</div>
+    <div id="win-message-container">
+        <h1>¡Felicidades, has ganado!</h1>
+        <div class="container">
+            <h1>¡Tienes un mensaje!</h1>
+            <button class="button" onclick="startMission()">Leer mensaje</button>
+        </div>
+    </div>
+   
+
+    <script>
+        // Crear estrellas aleatorias
+        for (let i = 0; i < 100; i++) {
+            let estrella = document.createElement('div');
+            estrella.classList.add('estrella');
+            estrella.style.top = Math.random() * 100 + 'vh'; /* Posición aleatoria en el eje Y */
+            estrella.style.left = Math.random() * 100 + 'vw'; /* Posición aleatoria en el eje X */
+            estrella.style.animationDuration = Math.random() * 5 + 5 + 's'; /* Duración aleatoria de la animación */
+            document.body.appendChild(estrella);
+        }
+        
+        const maze = document.getElementById("maze");
+        const winMessage = document.getElementById("win-message");
+        const size = 18;
+
+        // Laberinto
+        const mazeLayout = [
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0],
+            [0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0],
+            [0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0],
+            [0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0],
+            [0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+            [0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+        ];
+
+        let playerPos = { x: 1, y: 0 };
+
+        function generateMaze() {
+            maze.innerHTML = "";
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = document.createElement("div");
+                    cell.classList.add("cell");
+                    maze.appendChild(cell);
+
+                    if (mazeLayout[y][x] === 0) {
+                        cell.classList.add("wall");
+                    }
+                    if (x === playerPos.x && y === playerPos.y) {
+                        cell.classList.add("player");
+                    }
+                    if (x === 17 && y === 17) {
+                        cell.classList.add("exit");
+                    }
+                }
+            }
+        }
+
+        function movePlayer(event) {
+            let { x, y } = playerPos;
+
+            if (event.key === "ArrowUp") y--;
+            if (event.key === "ArrowDown") y++;
+            if (event.key === "ArrowLeft") x--;
+            if (event.key === "ArrowRight") x++;
+
+            if (mazeLayout[y] && mazeLayout[y][x] === 1) {
+                playerPos = { x, y };
+                generateMaze();
+            }
+
+            const winMessageContainer = document.getElementById("win-message-container");
+
+if (x === 17 && y === 17) {
+    winMessageContainer.style.display = "block"; // Muestra el mensaje de victoria
+    maze.style.display = "none";  // Oculta el laberinto
+}
+        }
+
+        window.addEventListener("keydown", movePlayer);
+        generateMaze();
+
+        function startMission() {
+            window.location.href = "Mensaje.html";
+            }
+    </script>
+</body>
+</html>

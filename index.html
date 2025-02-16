@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-family: "Audiowide", sans-serif;
+        }
+        @keyframes glowing {
+            0% { box-shadow: 0 0 5px gold; }
+    50% { box-shadow: 0 0 20px gold, 0 0 30px rgba(255, 215, 0, 0.7); }
+    100% { box-shadow: 0 0 5px gold; }
+        }
+        .button {
+            background-color: #252065;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            border-radius: 8px;
+            transition: 0.3s;
+            font-family: "Audiowide", sans-serif;
+    animation: glowing 1.5s infinite alternate;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starsCanvas"></canvas>
+    <div class="container">
+        <h1>¡TIENES UNA MISIÓN IMPORTANTE!</h1>
+        <button class="button" onclick="startMission()">ACEPTAR MISIÓN</button>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById("starsCanvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let stars = [];
+
+        function createStars() {
+            for (let i = 0; i < 100; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.2
+                });
+            }
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+                star.y += star.speed;
+                if (star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(drawStars);
+        }
+
+        function startMission() {
+            const audio = document.getElementById("starWarsAudio");
+            audio.play();
+            window.location.href = "Ronda uno.html";
+            }
+        createStars();
+        drawStars();
+        document.body.addEventListener('click', function() {
+            const audio = document.getElementById("starWarsAudio");
+            audio.play();
+        });
+    </script>
+    <audio id="starWarsAudio" loop>
+        <source src="starsong.mp3" type="audio/mpeg">
+    </audio>
+</body>
+</html>

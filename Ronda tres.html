@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atrapa los cristales</title>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        #game-board {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        #gatito {
+            position: absolute;
+            bottom: 20px;
+            width: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .estrella, .meteorito {
+            position: absolute;
+            width: 70px;
+        }
+
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: white;
+            font-family: "Audiowide", sans-serif;
+        }
+
+        #start-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #252065;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            font-family: "Audiowide", sans-serif;
+        }
+
+        #next-game-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #252065;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            display: none;
+            font-family: "Audiowide", sans-serif;
+        }
+
+        #message {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            color: white;
+            text-align: center;
+            display: none;
+            font-family: "Audiowide", sans-serif;
+        }
+
+        /* Fondo de estrellas */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Canvas para las estrellas de fondo -->
+    <canvas id="starsCanvas"></canvas>
+
+    <div id="game-board">
+        <div id="score">Puntos: 0</div>
+        <img id="gatito" src="cat.png" alt="Gatito" />
+        <button id="start-btn" onclick="startGame()">Comenzar</button>
+        <button id="next-game-btn" onclick="goToNextGame()">Ir al siguiente juego</button>
+        <div id="message"></div> <!-- Aquí se mostrarán los mensajes -->
+    </div>
+
+    <!-- Sonidos -->
+    <audio id="star-sound" src="star-sound.mp3" preload="auto"></audio>
+    <audio id="meteor-sound" src="meteor-sound.mp3" preload="auto"></audio>
+
+    <script>
+        // Fondo de estrellas
+        const canvas = document.getElementById("starsCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Ajustar el tamaño del canvas
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let stars = [];
+
+        function createStars() {
+            for (let i = 0; i < 100; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2 + 1,
+                    speed: Math.random() * 0.5 + 0.2,
+                    opacity: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+                star.y += star.speed;
+                if (star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(drawStars);
+        }
+
+        createStars();
+        drawStars();
+
+        // Variables del juego
+        const gatito = document.getElementById("gatito");
+        const scoreElement = document.getElementById("score");
+        const startBtn = document.getElementById("start-btn");
+        const nextGameBtn = document.getElementById("next-game-btn");
+        const messageElement = document.getElementById("message");
+
+        let score = 0;
+        let moveLeft = false, moveRight = false;
+        let speed = 3;
+        let gameInterval, starInterval, meteorInterval;
+
+        function startGame() {
+            startBtn.style.display = "none";
+            score = 0;
+            scoreElement.innerHTML = "Puntos: " + score;
+            speed = 3;
+            gameInterval = setInterval(gameLoop, 20);
+            starInterval = setInterval(spawnStar, 1500); // Estrellas cada 500ms
+            meteorInterval = setInterval(spawnMeteor, 500); // Meteoros cada 1500ms
+        }
+
+        function gameLoop() {
+            let gatitoLeft = parseInt(gatito.style.left) || window.innerWidth / 2;
+
+            if (moveLeft && gatitoLeft > 10) {
+                gatito.style.left = gatitoLeft - 7 + "px";
+            }
+            if (moveRight && gatitoLeft < window.innerWidth - 70) {
+                gatito.style.left = gatitoLeft + 7 + "px";
+            }
+
+            document.querySelectorAll(".estrella").forEach(estrella => {
+                let estrellaTop = parseInt(estrella.style.top);
+                if (estrellaTop > window.innerHeight) {
+                    estrella.remove();
+                } else {
+                    estrella.style.top = estrellaTop + speed + "px";
+                }
+
+                if (checkCollision(estrella, gatito)) {
+                    score++;
+                    scoreElement.innerHTML = "Puntos: " + score;
+                    estrella.remove();
+                    playSound('star');
+                    if (score >= 50) {
+                        gameWin();
+                    }
+                }
+            });
+
+            document.querySelectorAll(".meteorito").forEach(meteorito => {
+                let meteorTop = parseInt(meteorito.style.top);
+                if (meteorTop > window.innerHeight) {
+                    meteorito.remove();
+                } else {
+                    meteorito.style.top = meteorTop + speed + "px";
+                }
+
+                if (checkCollision(meteorito, gatito)) {
+                    playSound('meteor');
+                    gameOver();
+                }
+            });
+        }
+
+        function spawnStar() {
+            let estrella = document.createElement("img");
+            estrella.src = "estrella.png"; 
+            estrella.classList.add("estrella");
+            estrella.style.left = Math.random() * (window.innerWidth - 40) + "px";
+            estrella.style.top = "0px";
+            document.body.appendChild(estrella);
+        }
+
+        function spawnMeteor() {
+            let meteorito = document.createElement("img");
+            meteorito.src = "meteorito.png"; 
+            meteorito.classList.add("meteorito");
+            meteorito.style.left = Math.random() * (window.innerWidth - 40) + "px";
+            meteorito.style.top = "0px";
+            document.body.appendChild(meteorito);
+        }
+
+        function checkCollision(obj1, obj2) {
+            let rect1 = obj1.getBoundingClientRect();
+            let rect2 = obj2.getBoundingClientRect();
+            return (
+                rect1.x < rect2.x + rect2.width &&
+                rect1.x + rect1.width > rect2.x &&
+                rect1.y < rect2.y + rect2.height &&
+                rect1.y + rect1.height > rect2.y
+            );
+        }
+
+        function gameOver() {
+            clearInterval(gameInterval);
+            clearInterval(starInterval);
+            clearInterval(meteorInterval);
+            showMessage("¡Perdiste! Inténtalo de nuevo.");
+        }
+
+        function gameWin() {
+            clearInterval(gameInterval);
+            clearInterval(starInterval);
+            clearInterval(meteorInterval);
+            showMessage("¡Ganaste! Has conseguido todos los puntos.");
+            nextGameBtn.style.display = "block"; 
+        }
+
+        function showMessage(message) {
+            messageElement.innerHTML = message;
+            messageElement.style.display = "block";
+        }
+
+        function playSound(type) {
+            const sound = type === 'star' ? document.getElementById("star-sound") : document.getElementById("meteor-sound");
+            sound.currentTime = 0; 
+            sound.play();
+        }
+
+        function goToNextGame() {
+            window.location.href = "Ronda cuatro.html"; 
+        }
+
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft") moveLeft = true;
+            if (e.key === "ArrowRight") moveRight = true;
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (e.key === "ArrowLeft") moveLeft = false;
+            if (e.key === "ArrowRight") moveRight = false;
+        });
+    </script>
+</body>
+</html>
